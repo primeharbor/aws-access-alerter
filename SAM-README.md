@@ -1,11 +1,7 @@
-# aws-access-alerter
-Generates Email Alerts when a new Public Resource is discovered by AWS Analyzer
-
-CloudFormation deploy AWS's new IAM Access Analyzer and a lambda that will use SES to notify you of the findings.
+# IAM Access Analyzer Alerter
+Serverless Application to deploy AWS's new IAM Access Analyzer and a lambda that will use SES to notify you of the findings.
 
 *Get Emails when someone in your account makes something public!*
-
-*NOTE:* this was intended to be a Serverless Application Repo deployment, but that AWS service doesn't yet support IAM Access Analyzer.
 
 ## What this does
 
@@ -23,7 +19,12 @@ You can add additional automations to the SNS topic to send these to Slack or ot
 * *"New un-authenticated resource found in {account_desc}"* - Notifies about public resources protected by conditions
 * *"New Resource trust found in {account_desc}"* - All other findings
 
+
 **WARNING! IAM Access Analyzer is a region-specific service and must be deployed in all regions to provide full coverage**
 
-## Deploy
-[QuickLink](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateUrl=https%3A%2F%2Fpht-cloudformation.s3.amazonaws.com%2Faws-iam-access-alerter-0.0.3-Template.yaml&stackName=iam-alerter&param_pCreateAnalyzer=True&param_pDebug=False&param_pEmailAddress=NONE&param_pEmailSender=NONE&param_pLambdaBucket=pht-cloudformation&param_pLambdaObject=aws-iam-access-alerter-0.0.3-lambda.zip)
+## Deploy Instructions
+
+If you have never configured SES before, you must verify the email identity for both the sender and receiver:
+```bash
+aws ses verify-email-identity --email-address you@yourcompany.com
+```
