@@ -17,12 +17,16 @@ Parameters:
   pEmailAddress:
     Description: If set, emails will be sent to this address, in addition to the Topic
     Type: String
-    Default: NONE
 
   pEmailSender:
     Description: If set, emails will be sent from this address rather than the recipient email address
     Type: String
     Default: NONE
+
+  pFunctionName:
+    Description: Name of the function to deploy.
+    Type: String
+    Default: iam-access-alerter
 
   pCreateAnalyzer:
     Description: Set this to false to disable the creation of an addtional Analyer
@@ -35,13 +39,11 @@ Parameters:
 Conditions:
   CreateAnalyzer: !Equals [ !Ref pCreateAnalyzer, "True"]
   SendFromRecipient: !Equals [ !Ref pEmailSender, "NONE"]
-  SendEmails: !Not [!Equals [ !Ref pEmailAddress, "NONE"]]
 
 Resources:
 
   LambdaRole:
     Type: AWS::IAM::Role
-    Condition: SendEmails
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -83,9 +85,8 @@ Resources:
 
   EmailFunction:
     Type: 'AWS::Serverless::Function'
-    Condition: SendEmails
     Properties:
-      FunctionName: !Sub "${AWS::StackName}-send-email"
+      FunctionName: !Sub "${pFunctionName}"
       Description: Sends emails based on IAM Access Advisor Findings
       Handler: email.handler
       Runtime: python3.6
@@ -128,7 +129,6 @@ Resources:
 
   EmailLambdaFunctionPermission:
     Type: AWS::Lambda::Permission
-    Condition: SendEmails
     Properties:
       FunctionName: !GetAtt EmailFunction.Arn
       Principal: sns.amazonaws.com
@@ -137,7 +137,6 @@ Resources:
 
   EmailTopicToLambdaSubscription:
     Type: AWS::SNS::Subscription
-    Condition: SendEmails
     Properties:
       Endpoint: !GetAtt EmailFunction.Arn
       Protocol: lambda
@@ -151,7 +150,7 @@ Outputs:
 
   TemplateVersion:
     Description: Version of this CFT
-    Value: 0.0.2
+    Value: 0.0.4
 
   TopicArn:
     Description: Arn of the topic findings are sent to
