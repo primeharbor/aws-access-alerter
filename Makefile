@@ -69,6 +69,15 @@ create-sar-application:
 	--home-page-url $(HOMEPAGE) \
 	--license-body file://LICENSE
 
+update-sar-application:
+	$(eval APPID := $(shell aws serverlessrepo list-applications --query 'Applications[?Name==`$(STACK_NAME)`].ApplicationId' --output text))
+	aws serverlessrepo update-application \
+	--application-id $(APPID) \
+	--author "$(AUTHOR)" \
+	--description "$(DESCRIPTION)" \
+	--readme-body file://SAM-README.md \
+	--home-page-url $(HOMEPAGE)
+
 # Release a new version of the software
 sar-release: package template
 ifndef version
