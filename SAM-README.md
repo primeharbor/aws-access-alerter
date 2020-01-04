@@ -24,7 +24,7 @@ You can add additional automations to the SNS topic to send these to Slack or ot
 
 ## Deploy Instructions
 
-If you have never configured SES before, you must verify the email identity for both the sender and receiver:
+All emails are sent via us-east-1. If you have never configured SES before, you must verify the email identity for both the sender and receiver:
 ```bash
-aws ses verify-email-identity --email-address you@yourcompany.com
+aws ses verify-email-identity --region us-east-1 --email-address you@yourcompany.com
 ```
