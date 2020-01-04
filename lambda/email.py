@@ -85,23 +85,23 @@ def handler(event, context):
         if finding['isPublic']:
             subject = f"New Public Resource found in {account_desc}"
             intro = f"A New Public Resource has been discovered in your account {account_desc}:"
-            explaniation = "This resource can be accessed by anyone on the Internet"
+            explanation = "This resource can be accessed by anyone on the Internet"
         elif finding['resourceType'] == "AWS::IAM::Role" and 'Federated' in finding['principal']:
             subject = f"New SAML Federation found in {account_desc}"
             intro = f"A New SAML Federation has been discovered in {account_desc}: "
-            explaniation = "Make sure the identity provider noted above as the Trusted Entity belongs to your organization and has appropriate security controls in place."
+            explanation = "Make sure the identity provider noted above as the Trusted Entity belongs to your organization and has appropriate security controls in place."
         elif finding['resourceType'] == "AWS::IAM::Role":
             subject = f"New cross-account role found in {account_desc}"
             intro = f"A New cross-account role has been discovered in {account_desc}: "
-            explaniation = "The trusted entity above has permissions to perform actions in your account. You should validate that account's identity and perform a risk-assessment on it. \n Note: The actions that can be performed are not reported by the IAM Access Analyzer and should be inspected for least privilege."
+            explanation = "The trusted entity above has permissions to perform actions in your account. You should validate that account's identity and perform a risk-assessment on it. \n Note: The actions that can be performed are not reported by the IAM Access Analyzer and should be inspected for least privilege."
         elif 'AWS' in finding['principal'] and finding['principal']['AWS'] == "*":
             subject = f"New un-authenticated resource found in {account_desc}"
             intro = f"A New resource has been discovered in {account_desc} that does not require IAM Authentication: "
-            explaniation = "The above resource does not require AWS IAM Authentication to access. All security measures rely on the conditions noted above"
+            explanation = "The above resource does not require AWS IAM Authentication to access. All security measures rely on the conditions noted above"
         else:
             subject = f"New Resource trust found in {account_desc}"
             intro = f"A New Trust has been discovered in your account {account_desc}: "
-            explaniation = "The above resource is accessible to the Trusted Entity for the actions noted above"
+            explanation = "The above resource is accessible to the Trusted Entity for the actions noted above"
 
         # Show account number of * if that's the trust, otherwise the entire principal in json.
         if 'AWS' in finding['principal']:
@@ -118,7 +118,7 @@ Trusted Entity: {trusted_entity}
 Actions: {json.dumps(finding['action'], sort_keys=True)}
 Conditions: {finding['condition']}
 
-{explaniation}
+{explanation}
 """
 
         html_body = f"""{intro}<p>
@@ -129,7 +129,7 @@ Conditions: {finding['condition']}
             <b>Actions:</b> {json.dumps(finding['action'], sort_keys=True)}<br>
             <b>Conditions:</b> {finding['condition']}<br>
             <p>
-            {explaniation}
+            {explanation}
             """
 
         logger.info(f"Subject: {subject}\n Body: {txt_body}")
@@ -145,7 +145,8 @@ Conditions: {finding['condition']}
 
 def send_email(subject, txt_body, html_body):
 
-    ses_client = boto3.client('ses')
+    # Always send emails via us-east-1 where SES is available and configured
+    ses_client = boto3.client('ses', region_name='us-east-1')
 
     message = MIMEMultipart()
     message['From'] = os.environ['EMAIL_FROM']
