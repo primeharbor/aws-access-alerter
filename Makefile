@@ -47,8 +47,8 @@ upload: package
 ifndef version
 	$(error version not set)
 else
-	aws s3 cp lambda/$(LAMBDA_PACKAGE) s3://$(BUCKET)/$(STACK_NAME)-$(version)-lambda.zip
-	aws s3 cp $(STACK_TEMPLATE) s3://$(BUCKET)/$(STACK_NAME)-$(version)-Template.yaml
+	aws s3 cp lambda/$(LAMBDA_PACKAGE) s3://$(BUCKET)/$(STACK_NAME)/lambda-$(version).zip
+	aws s3 cp $(STACK_TEMPLATE) s3://$(BUCKET)/$(STACK_NAME)/Template-$(version).yaml
 endif
 
 #

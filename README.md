@@ -25,5 +25,5 @@ You can add additional automations to the SNS topic to send these to Slack or ot
 **WARNING! IAM Access Analyzer is a region-specific service and must be deployed in all regions to provide full coverage**
 
 ## Deploy
-* [QuickLink](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateUrl=https%3A%2F%2Fpht-cloudformation.s3.amazonaws.com%2Faws-iam-access-alerter-0.0.3-Template.yaml&stackName=iam-alerter&param_pCreateAnalyzer=True&param_pDebug=False&param_pEmailAddress=NONE&param_pEmailSender=NONE&param_pLambdaBucket=pht-cloudformation&param_pLambdaObject=aws-iam-access-alerter-0.0.3-lambda.zip)
+* [QuickLink](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateUrl=https%3A%2F%2Fpht-cloudformation.s3.amazonaws.com%2Faws-iam-access-alerter%2FTemplate-0.0.5.yaml&stackName=iam-alerter&param_pCreateAnalyzer=True&param_pDebug=False&param_pEmailAddress=NONE&param_pEmailSender=NONE&param_pLambdaBucket=pht-cloudformation&param_pLambdaObject=aws-iam-access-alerter%2Flambda-0.0.5.zip)
 * [ServerlessAppRepo](https://console.aws.amazon.com/lambda/home#/create/app?applicationId=arn:aws:serverlessrepo:us-east-1:658643464782:applications/aws-iam-access-alerter)
