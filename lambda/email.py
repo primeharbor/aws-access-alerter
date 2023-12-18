@@ -1,3 +1,4 @@
+# MIT License - Copyright (c) 2019-2023 Chris Farris <chris@primeharbor.com>
 import boto3
 from botocore.exceptions import ClientError
 import json
@@ -9,12 +10,7 @@ from email.mime.text import MIMEText
 
 import logging
 logger = logging.getLogger()
-
-if os.environ['DEBUG'] == "True":
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
-
+logger.setLevel(getattr(logging, os.getenv('LOG_LEVEL', default='INFO')))
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -25,41 +21,6 @@ def handler(event, context):
     message = json.loads(event['Records'][0]['Sns']['Message'])
     logger.info("Received message: " + json.dumps(message, sort_keys=True))
 
-    # Structure of the Finding
-    # {
-    #   "version": "0",
-    #   "id": "081668c3-90e7-a9ca-f284-9cb4b2396a4d",
-    #   "detail-type": "Access Analyzer Finding",
-    #   "source": "aws.access-analyzer",
-    #   "account": "012345678901",
-    #   "time": "2019-12-07T17:36:45Z",
-    #   "region": "us-east-1",
-    #   "resources": [
-    #     "arn:aws:access-analyzer:us-east-1:012345678901:analyzer/aws-iam-access-alerter"
-    #   ],
-    #   "detail": {
-    #     "version": "1.0",
-    #     "id": "b1087d63-331c-4433-84f2-a973c7ae1313",
-    #     "status": "ACTIVE",
-    #     "resourceType": "AWS::IAM::Role",
-    #     "resource": "arn:aws:iam::012345678901:role/fnord",
-    #     "createdAt": "2019-12-07T17:36:42Z",
-    #     "analyzedAt": "2019-12-07T17:36:42Z",
-    #     "updatedAt": "2019-12-07T17:36:42Z",
-    #     "accountId": "012345678901",
-    #     "region": "us-east-1",
-    #     "principal": {
-    #       "AWS": "987654321098"
-    #     },
-    #     "action": [
-    #       "sts:AssumeRole"
-    #     ],
-    #     "condition": {},
-    #     "isDeleted": false,
-    #     "isPublic": false
-    #   }
-    # }
-
     finding = message['detail']
     if finding['status'] != "ACTIVE":
         logger.debug(f"Finding is of status: {finding['status']}")
@@ -69,18 +30,26 @@ def handler(event, context):
         logger.debug(f"Unable to access resource {finding['resource']}")
         return(event)
 
-
-    try:
-
+    account_alias = None
+    account_desc = f"{finding['accountId']}"
+    if message['account'] == finding['accountId']:
+        # Get the local IAM Alias
         iam_client = boto3.client('iam')
         response = iam_client.list_account_aliases()
         if 'AccountAliases' in response and len(response['AccountAliases']) > 0:
             account_alias = response['AccountAliases'][0]
-            account_desc = f"{account_alias}({finding['accountId']})"
-        else:
-            account_alias = None
-            account_desc = f"{finding['accountId']}"
+            account_desc = f"{account_alias} ({finding['accountId']})"
+    else:
+        # This is another account in the org, get the name from Orgs
+        try:
+            org_client = boto3.client('organizations')
+            response = org_client.describe_account( AccountId=finding['accountId'] )
+            account_alias = response['Account']['Name']
+            account_desc = f"{account_alias} ({finding['accountId']})"
+        except Exception as e:
+            logger.error(f"Error getting Account Details from organizations: {e}")
 
+    try:
         # Make some notes based on attributes of the finding
         if finding['isPublic']:
             subject = f"New Public Resource found in {account_desc}"
@@ -120,7 +89,6 @@ Conditions: {finding['condition']}
 
 {explanation}
 """
-
         html_body = f"""{intro}<p>
             <b>Resource:</b> {finding['resource']}<br>
             <b>Type:</b> {finding['resourceType']}<br>
@@ -131,7 +99,6 @@ Conditions: {finding['condition']}
             <p>
             {explanation}
             """
-
         logger.info(f"Subject: {subject}\n Body: {txt_body}")
         send_email(subject, txt_body, html_body)
         return(event)
@@ -144,10 +111,8 @@ Conditions: {finding['condition']}
         raise
 
 def send_email(subject, txt_body, html_body):
-
     # Always send emails via us-east-1 where SES is available and configured
     ses_client = boto3.client('ses', region_name='us-east-1')
-
     message = MIMEMultipart()
     message['From'] = os.environ['EMAIL_FROM']
     message['To'] = os.environ['EMAIL_TO']

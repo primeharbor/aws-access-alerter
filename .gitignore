@@ -1,11 +1,6 @@
-
-*Manifest.yaml
-test_event.json
-Attic/
-
 *.output.yaml
 *.zip
-
+.env
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -141,4 +136,4 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-Notes.md
+

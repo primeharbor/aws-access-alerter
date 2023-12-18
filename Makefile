@@ -1,4 +1,24 @@
+# MIT License
 
+# Copyright (c) 2019-2023 Chris Farris <chris@primeharbor.com>
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
 ifndef BUCKET
 $(error BUCKET is not set)
@@ -8,15 +28,14 @@ endif
 export STACK_NAME=aws-iam-access-alerter
 # Filename for the CFT to deploy
 export SAM_TEMPLATE=IAM-Access-Alerter-SAM-Template.yaml
-export STACK_TEMPLATE=IAM-Access-Alerter-QuickLink-Template.yaml
 # Name of the Zip file with all the function code and dependencies
 export LAMBDA_PACKAGE=lambda-package.zip
 
 # Application Variables
 export AUTHOR=Chris Farris
 export DESCRIPTION=Generate Email Alerts from the IAM Access Analyzer
-export GITHUB=https://github.com/jchrisfarris/aws-access-alerter
-export HOMEPAGE=https://www.chrisfarris.com/
+export GITHUB=https://github.com/primeharbor/aws-access-alerter
+export HOMEPAGE=https://www.primeharbor.com/projects/aws-access-alerter
 export LICENSE=MIT
 
 FUNCTIONS=$(STACK_NAME)-send-email
@@ -31,36 +50,15 @@ clean:
 	cd lambda && $(MAKE) clean
 
 #
-# Lambda Targets
-#
-
-# Build a clean lambda package for publishing
-package:
-	cd lambda && $(MAKE) package
-
-# just re-zip up the code
-zipfile:
-	cd lambda && $(MAKE) zipfile
-
-# Pushes to S3 Bucket for use with the non-SAM CFT
-upload: package
-ifndef version
-	$(error version not set)
-else
-	aws s3 cp lambda/$(LAMBDA_PACKAGE) s3://$(BUCKET)/$(STACK_NAME)/lambda-$(version).zip
-	aws s3 cp $(STACK_TEMPLATE) s3://$(BUCKET)/$(STACK_NAME)/Template-$(version).yaml
-endif
-
-#
 ## SAM/SAR Targets
 #
 # Create the SAM Template file
-template: package
+template:
 	aws cloudformation package --template $(SAM_TEMPLATE) --s3-bucket $(BUCKET) --output-template-file $(STACK_NAME).output.yaml
 
 # Create the SAR Application. This is only needed once
 create-sar-application:
-	aws serverlessrepo create-application \
+	aws serverlessrepo create-application --output text \
 	--author "$(AUTHOR)" \
 	--description "$(DESCRIPTION)" \
 	--name $(STACK_NAME) \
@@ -76,15 +74,15 @@ update-sar-application:
 	--author "$(AUTHOR)" \
 	--description "$(DESCRIPTION)" \
 	--readme-body file://SAM-README.md \
-	--home-page-url $(HOMEPAGE)
+	--home-page-url $(HOMEPAGE) --output text
 
 # Release a new version of the software
-sar-release: package template
+sar-release: template
 ifndef version
 	$(error version not set)
 else
 	$(eval app_arn := $(shell aws serverlessrepo list-applications | jq -r '.Applications[]  | select(.Name == "$(STACK_NAME)") | .ApplicationId'))
-	aws serverlessrepo create-application-version \
+	aws serverlessrepo create-application-version --output text \
 	--application-id $(app_arn) \
 	--semantic-version $(version) \
 	--source-code-url $(GITHUB) \
@@ -107,7 +105,6 @@ endif
 # Validate the template
 cfn-validate: $(SAM_TEMPLATE)
 	cft-validate --region $(AWS_DEFAULT_REGION) --template $(SAM_TEMPLATE)
-	cft-validate --region $(AWS_DEFAULT_REGION) --template $(STACK_TEMPLATE)
 
 
 # # # Update the Lambda Code without modifying the CF Stack
