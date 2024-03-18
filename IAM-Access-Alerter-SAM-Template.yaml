@@ -112,27 +112,18 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/IAMAccessAnalyzerReadOnlyAccess
         - arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
       Policies:
-      - PolicyName: LambdaLogging
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Resource: "arn:aws:logs:*:*:*"
-            Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Effect: Allow
       - PolicyName: SendEmails
         PolicyDocument:
           Version: '2012-10-17'
           Statement:
           - Effect: Allow
             Action:
-            - ses:*   #FIXME
+            - "ses:SendRawEmail"
             Resource:
-            - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${pEmailAddress}
-            - !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${pEmailSender}
+            - !Sub arn:aws:ses:us-east-1:${AWS::AccountId}:identity/${pEmailAddress}
+            - !Sub arn:aws:ses:us-east-1:${AWS::AccountId}:identity/${pEmailSender}
       - PolicyName: GetAccountDetails
         PolicyDocument:
           Version: '2012-10-17'
@@ -158,6 +149,12 @@ Resources:
           EMAIL_FROM: !If [SendFromRecipient, !Ref pEmailAddress, !Ref pEmailSender]
           LOG_LEVEL: !Ref pLogLevel
       # Tags inherited from Stack
+      Events:
+        SnsTopic:
+          Type: SNS
+          Properties:
+            # SqsSubscription: true
+            Topic: !Ref AnalyzerEventTopic
       InlineCode: |
         # MIT License - Copyright (c) 2019-2023 Chris Farris <chris@primeharbor.com>
         import boto3
@@ -338,22 +335,6 @@ Resources:
           #     aws:SourceAccount: !Ref AWS::AccountId
 
 
-  EmailLambdaFunctionPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt EmailFunction.Arn
-      Principal: sns.amazonaws.com
-      SourceArn: !Ref AnalyzerEventTopic
-      Action: lambda:invokeFunction
-
-  EmailTopicToLambdaSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      Endpoint: !GetAtt EmailFunction.Arn
-      Protocol: lambda
-      TopicArn: !Ref 'AnalyzerEventTopic'
-
-
 Outputs:
   StackName:
     Description: Name of this Stack
@@ -361,7 +342,7 @@ Outputs:
 
   TemplateVersion:
     Description: Version of this CFT
-    Value: 0.0.5
+    Value: 0.0.6
 
   TopicArn:
     Description: Arn of the topic findings are sent to
